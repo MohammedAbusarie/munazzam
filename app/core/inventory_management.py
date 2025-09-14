@@ -1,16 +1,17 @@
 # munazzam/app/core/inventory_management.py
 
+from sqlalchemy.orm import joinedload, Session
 from .database import SessionLocal
 from .models import (
     Car, Department, CarClass, Manufacturer, Model, FunctionalLocation,
-    LocationDescription, NotificationRecipient, ContractType, Management, Activity
+    LocationDescription, NotificationRecipient, ContractType, Management,
+    Activity, CloudinaryImage
 )
-from sqlalchemy.orm import joinedload
+from . import cloudinary_service # Import the new service
 
 def get_all_cars_with_details():
     """
-    Fetches all cars and eagerly loads all related data in a single query
-    for efficient display in the main table.
+    Fetches all cars and eagerly loads all related data, including the image.
     """
     session = SessionLocal()
     try:
@@ -24,7 +25,8 @@ def get_all_cars_with_details():
             joinedload(Car.notification_recipient),
             joinedload(Car.contract_type),
             joinedload(Car.management),
-            joinedload(Car.activity)
+            joinedload(Car.activity),
+            joinedload(Car.image) # Eagerly load the image relationship
         ).all()
         return cars
     finally:
@@ -51,15 +53,33 @@ def get_lookup_data():
         session.close()
 
 def add_car(car_data):
-    """Adds a new car to the database."""
+    """
+    Adds a new car, uploads its image to Cloudinary, and saves the records
+    in a single database transaction.
+    """
     session = SessionLocal()
     try:
-        # For now, we ignore the image path. Later, this is where you would
-        # upload the file at car_data['image_path'] to Cloudinary and get a URL.
-        car_data.pop('image_path', None)
-        
+        image_path = car_data.pop('image_path', None)
+        if not image_path:
+            return {"success": False, "message": "Image path is required."}
+
+        upload_result = cloudinary_service.upload_image(image_path)
+        if not upload_result["success"]:
+            raise Exception(f"Image upload failed: {upload_result['error']}")
+
+        # Create the database record for the uploaded image
+        cloudinary_data = upload_result["data"]
+        new_image = CloudinaryImage(
+            public_id=cloudinary_data['public_id'],
+            url=cloudinary_data['secure_url']
+        )
+        session.add(new_image)
+
+        # Create and link the new car
         new_car = Car(**car_data)
+        new_car.image = new_image  # Associate the image with the car
         session.add(new_car)
+
         session.commit()
         return {"success": True, "message": "Car added successfully."}
     except Exception as e:
@@ -69,14 +89,39 @@ def add_car(car_data):
         session.close()
 
 def update_car(car_id, car_data):
-    """Updates an existing car."""
+    """
+    Updates a car's details. If a new image is provided, it replaces the
+    old one on Cloudinary and in the database.
+    """
     session = SessionLocal()
     try:
-        car_data.pop('image_path', None)
+        car_to_update = session.query(Car).options(joinedload(Car.image)).filter(Car.id == car_id).one()
 
-        car_to_update = session.query(Car).filter(Car.id == car_id).one()
+        new_image_path = car_data.pop('image_path', None)
+        if new_image_path:
+            # Delete the old image from Cloudinary if it exists
+            if car_to_update.image:
+                cloudinary_service.delete_image(car_to_update.image.public_id)
+                session.delete(car_to_update.image) # Delete old image record
+
+            # Upload the new image
+            upload_result = cloudinary_service.upload_image(new_image_path)
+            if not upload_result["success"]:
+                raise Exception(f"New image upload failed: {upload_result['error']}")
+
+            # Create and link the new image record
+            cloudinary_data = upload_result["data"]
+            new_image = CloudinaryImage(
+                public_id=cloudinary_data['public_id'],
+                url=cloudinary_data['secure_url']
+            )
+            session.add(new_image)
+            car_to_update.image = new_image
+
+        # Update other car attributes
         for key, value in car_data.items():
             setattr(car_to_update, key, value)
+
         session.commit()
         return {"success": True, "message": "Car updated successfully."}
     except Exception as e:
@@ -86,10 +131,20 @@ def update_car(car_id, car_data):
         session.close()
 
 def delete_car(car_id):
-    """Deletes a car from the database."""
+    """
+    Deletes a car and its associated image from both the database
+    and Cloudinary.
+    """
     session = SessionLocal()
     try:
-        car_to_delete = session.query(Car).filter(Car.id == car_id).one()
+        car_to_delete = session.query(Car).options(joinedload(Car.image)).filter(Car.id == car_id).one()
+        
+        # If an image is associated, delete it from Cloudinary and the DB
+        if car_to_delete.image:
+            image_public_id = car_to_delete.image.public_id
+            session.delete(car_to_delete.image)
+            cloudinary_service.delete_image(image_public_id)
+
         session.delete(car_to_delete)
         session.commit()
         return {"success": True, "message": "Car deleted successfully."}

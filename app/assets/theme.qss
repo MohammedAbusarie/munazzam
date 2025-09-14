@@ -1,0 +1,169 @@
+/*
+ * Munazzam - Industrial Clarity Theme
+ * Version 1.0
+ */
+
+/* ===================================================================
+   GLOBAL & MAIN WINDOW STYLES
+   =================================================================*/
+
+QWidget {
+    font-family: Inter, Segoe UI, sans-serif;
+    color: #2C3E50; /* Midnight Blue */
+    /* THIS IS THE GLOBAL FONT SIZE YOU CAN CHANGE */
+    font-size: 12pt;
+}
+
+QMainWindow, QDialog {
+    background-color: #ECF0F1; /* Clouds */
+}
+
+/* ===================================================================
+   LABELS & TEXT
+   =================================================================*/
+
+QLabel {
+    background-color: transparent;
+    color: #2C3E50;
+}
+
+QGroupBox {
+    border: 1px solid #BDC3C7;
+    border-radius: 4px;
+    margin-top: 10px;
+    padding-top: 10px;
+}
+
+QGroupBox::title {
+    subcontrol-origin: margin;
+    subcontrol-position: top center;
+    padding: 0 10px;
+    background-color: #ECF0F1;
+    font-size: 14pt;
+    font-weight: 600; /* SemiBold */
+}
+
+/* ===================================================================
+   BUTTONS
+   =================================================================*/
+
+QPushButton {
+    background-color: #FFFFFF;
+    color: #2C3E50;
+    border: 1px solid #BDC3C7; /* Silver */
+    border-radius: 4px;
+    padding: 8px 12px;
+    font-weight: 500; /* Medium */
+    min-height: 20px;
+    min-width: 80px;
+}
+
+QPushButton:hover {
+    background-color: #F8F9F9;
+    border: 1px solid #7F8C8D; /* Asbestos */
+}
+
+QPushButton:pressed {
+    background-color: #E0E0E0;
+}
+
+QPushButton:disabled {
+    background-color: #ECF0F1;
+    color: #BDC3C7;
+}
+
+/* Primary Action Button */
+QPushButton#primaryButton {
+    background-color: #34495E; /* Wet Asphalt */
+    color: #FFFFFF;
+    border: none;
+}
+
+QPushButton#primaryButton:hover {
+    background-color: #2C3E50; /* Midnight Blue */
+}
+
+/* ===================================================================
+   INPUT WIDGETS
+   =================================================================*/
+
+QLineEdit, QTextEdit, QSpinBox, QDoubleSpinBox, QComboBox, QDateEdit {
+    background-color: #FFFFFF;
+    border: 1px solid #BDC3C7;
+    border-radius: 4px;
+    padding: 8px;
+    selection-background-color: #1ABC9C; /* Turquoise */
+    selection-color: #FFFFFF;
+    min-height: 20px;
+}
+
+QLineEdit:focus, QTextEdit:focus, QSpinBox:focus, QDoubleSpinBox:focus, QComboBox:focus, QDateEdit:focus {
+    border: 2px solid #1ABC9C;
+    padding: 7px;
+}
+
+QComboBox::drop-down {
+    subcontrol-origin: padding;
+    subcontrol-position: top right;
+    width: 25px;
+    border-left-width: 1px;
+    border-left-color: #BDC3C7;
+    border-left-style: solid;
+    border-top-right-radius: 3px;
+    border-bottom-right-radius: 3px;
+}
+
+/* ===================================================================
+   TABLE & LIST VIEWS
+   =================================================================*/
+
+QTableView, QTableWidget {
+    background-color: #FFFFFF;
+    border: 1px solid #BDC3C7;
+    gridline-color: #ECF0F1; /* Clouds */
+    alternate-background-color: #F8F9F9;
+    selection-background-color: #1ABC9C; /* Turquoise */
+    selection-color: #FFFFFF;
+}
+
+QHeaderView::section {
+    background-color: #34495E; /* Wet Asphalt */
+    color: #FFFFFF;
+    padding: 8px;
+    border: none;
+    font-weight: 600; /* SemiBold */
+}
+
+/* ===================================================================
+   SPECIFIC WIDGET STYLES
+   =================================================================*/
+
+/* Style for the main navigation bar container */
+QFrame#navBar {
+    background-color: #34495E; /* Wet Asphalt */
+}
+
+/* Style for ALL buttons inside the navigation bar */
+QFrame#navBar QPushButton {
+    background-color: transparent;
+    color: #FFFFFF;
+    border: none; /* No border */
+    font-size: 14pt;
+    font-weight: bold;
+    padding: 10px;
+    padding-right: 20px; /* Add more padding to the right for RTL */
+    text-align: right;   /* --- THIS IS THE ALIGNMENT FIX --- */
+    border-right: 3px solid transparent; /* Reserve space for the active border */
+}
+
+QFrame#navBar QPushButton:hover {
+    background-color: #4E6D8C; /* A lighter shade for hover */
+}
+
+/* --- THIS IS THE NEW RULE FOR THE ACTIVE BUTTON --- */
+/* It targets a button only when its 'active' property is true */
+QFrame#navBar QPushButton[active="true"] {
+    background-color: #2C3E50; /* Darker, active background */
+    /* Add a visible accent border on the right side */
+    border-right: 3px solid #1ABC9C; /* Turquoise */
+}

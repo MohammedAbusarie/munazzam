@@ -12,7 +12,8 @@ from app.core.models import (
 )
 
 # --- CONFIGURATION ---
-CSV_FILE_PATH = "سيارات المدينة.xlsx - Sheet1.csv"
+# Correctly points to the XLSX file now
+XLSX_FILE_PATH = "سيارات المدينة.xlsx"
 
 def get_or_create(session, model, **kwargs):
     """
@@ -25,6 +26,7 @@ def get_or_create(session, model, **kwargs):
     else:
         instance = model(**kwargs)
         session.add(instance)
+        # We commit here to ensure the ID is available for the next steps
         session.commit()
         return instance
 
@@ -45,34 +47,36 @@ def generate_random_dates():
 
 def seed_data():
     """
-    Main function to read the CSV and populate the database.
+    Main function to read the XLSX and populate the database.
     """
     db: Session = SessionLocal()
     
-    print(f"Reading data from '{CSV_FILE_PATH}'...")
+    print(f"Reading data from '{XLSX_FILE_PATH}'...")
     try:
-        df = pd.read_csv(CSV_FILE_PATH)
-        # Clean up column names by removing extra spaces
+        # --- THIS IS THE KEY CHANGE ---
+        df = pd.read_excel(XLSX_FILE_PATH)
         df.columns = df.columns.str.strip()
     except FileNotFoundError:
-        print(f"ERROR: The file '{CSV_FILE_PATH}' was not found.")
+        print(f"ERROR: The file '{XLSX_FILE_PATH}' was not found.")
         print("Please make sure it's in the same directory as this script.")
+        return
+    except Exception as e:
+        print(f"An error occurred reading the Excel file: {e}")
         return
 
     print("Starting database seeding process...")
     
-    # Pre-fetch existing data to reduce queries inside the loop
-    existing_cars = {c.fleet_no for c in db.query(Car.fleet_no).all()}
+    existing_cars = {str(c[0]) for c in db.query(Car.fleet_no).all()}
 
     for index, row in df.iterrows():
         try:
+            # Ensure all read values are treated as strings and cleaned up
             fleet_no = str(row['Fleet No']).strip()
             if fleet_no in existing_cars:
                 print(f"Skipping existing car with Fleet No: {fleet_no}")
                 continue
 
             # --- 1. Get or Create all Lookup Table Entries ---
-            # This ensures all foreign key relationships can be satisfied.
             department = get_or_create(db, Department, name=str(row['Department']).strip())
             car_class = get_or_create(db, CarClass, name=str(row['Class']).strip())
             manufacturer = get_or_create(db, Manufacturer, name=str(row['Manufacturer']).strip())
@@ -87,13 +91,10 @@ def seed_data():
             # --- 2. Map Enum Values ---
             ownership = OwnershipStatus.LEASED if 'Leased' in str(row['Owned/Leased']) else OwnershipStatus.OWNED
             
-            room_str = str(row['Room']).strip()
-            if "NON-REGU" in room_str:
-                room_type = RoomType.NON_REGULAR
-            elif "EMP-24HRS" in room_str:
-                room_type = RoomType.EMP_24HRS
-            else: # Default to REGULAR
-                room_type = RoomType.REGULAR
+            room_str = str(row['Room']).strip().upper()
+            if "NON-REGU" in room_str: room_type = RoomType.NON_REGULAR
+            elif "EMP-24HRS" in room_str: room_type = RoomType.EMP_24HRS
+            else: room_type = RoomType.REGULAR
             
             # --- 3. Generate Diverse Dates ---
             random_dates = generate_random_dates()
@@ -120,8 +121,7 @@ def seed_data():
             )
             db.add(new_car)
             
-            # Commit periodically to manage memory
-            if index % 50 == 0:
+            if index % 50 == 0 and index > 0:
                 db.commit()
                 print(f"Processed {index + 1} of {len(df)} rows...")
 
@@ -129,17 +129,13 @@ def seed_data():
             print(f"Error processing row {index + 1}: {row.to_dict()}")
             print(f"--> Exception: {e}")
             db.rollback()
-            # Decide if you want to stop on first error or continue
-            # return # Uncomment to stop on first error
 
-    # Final commit for any remaining records
+    # Final commit
     db.commit()
     db.close()
-    print("\nDatabase seeding completed successfully! ✅")
+    print("\nDatabase seeding completed successfully!")
 
 if __name__ == "__main__":
-    # This will drop and re-create all tables.
-    # USE WITH CAUTION IN A PRODUCTION ENVIRONMENT.
     print("WARNING: This script will delete all existing data in your tables.")
     confirm = input("Are you sure you want to continue? (y/n): ")
     if confirm.lower() == 'y':
