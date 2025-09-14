@@ -1,0 +1,25 @@
+# --- Python Virtual Environment ---
+.venv/
+venv/
+ENV/
+
+# --- Python Bytecode and Cache ---
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# --- IDE / Editor Configuration ---
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# --- Build Artifacts ---
+/build/
+/dist/
+*.spec
+
+# --- Operating System Files ---
+.DS_Store
+Thumbs.db
