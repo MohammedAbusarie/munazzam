@@ -2,8 +2,8 @@
 
 import uuid
 import os
-import io # Required for in-memory file handling
-from PIL import Image # Import from Pillow
+import io 
+from PIL import Image 
 from .config import get_supabase_client
 
 # --- Configuration for Image Compression ---
@@ -19,26 +19,21 @@ def upload_image(local_file_path: str, bucket_name: str) -> dict:
         file_ext = os.path.splitext(local_file_path)[1].lower()
         remote_path_on_bucket = f"{uuid.uuid4()}{file_ext}"
 
-        # --- Image Compression Logic ---
         image = Image.open(local_file_path)
         
-        # Convert RGBA (like in PNGs) to RGB for saving as JPEG
         if image.mode in ("RGBA", "P"):
             image = image.convert("RGB")
-            
-        # Resize the image if it's larger than the max dimensions
+  
         image.thumbnail(MAX_IMAGE_SIZE, Image.Resampling.LANCZOS)
         
-        # Save the compressed image to an in-memory buffer
         in_mem_file = io.BytesIO()
         image.save(in_mem_file, format='JPEG', quality=JPEG_QUALITY, optimize=True)
-        in_mem_file.seek(0) # Go to the beginning of the buffer
+        in_mem_file.seek(0) 
 
-        # --- Upload the compressed image data ---
         supabase.storage.from_(bucket_name).upload(
             remote_path_on_bucket,
-            in_mem_file.read(), # Read the bytes from the buffer
-            {"content-type": "image/jpeg"} # Upload as JPEG
+            in_mem_file.read(), 
+            {"content-type": "image/jpeg"} 
         )
 
         public_url = supabase.storage.from_(bucket_name).get_public_url(remote_path_on_bucket)
