@@ -2,15 +2,12 @@
 
 import enum
 from sqlalchemy import (
-    create_engine, Column, Integer, String, Date, Enum, ForeignKey, Text,
-    Table
+    create_engine, Column, Integer, String, Date, Enum, ForeignKey, Text
 )
 from sqlalchemy.orm import relationship
-from .database import Base,engine
+from .database import Base, engine
 
 # --- Enum Definitions ---
-# These provide controlled choices for specific fields.
-
 class OwnershipStatus(enum.Enum):
     OWNED = "Owned"
     LEASED = "Leased"
@@ -24,13 +21,6 @@ class EquipmentStatus(enum.Enum):
     OPERATIONAL = "عاملة"  # Operational
     NEW = "جديدة"           # New
     OUT_OF_ORDER = "معطلة" # Out of Order
-
-# --- Association Table for Equipment and Images (Many-to-Many) ---
-equipment_image_association = Table('equipment_image_association', Base.metadata,
-    Column('equipment_id', Integer, ForeignKey('equipment.id'), primary_key=True),
-    Column('image_id', Integer, ForeignKey('cloudinary_images.id'), primary_key=True)
-)
-
 
 # ===================================================================
 # LOOKUP TABLES (For Dropdown Lists - DDL)
@@ -115,15 +105,6 @@ class Sector(Base):
 # DATA TABLES
 # ===================================================================
 
-class CloudinaryImage(Base):
-    __tablename__ = 'cloudinary_images'
-    id = Column(Integer, primary_key=True)
-    public_id = Column(String(255), nullable=False, unique=True)
-    url = Column(String(512), nullable=False)
-    
-    # Relationship to a single car (one-to-one)
-    car = relationship("Car", back_populates="image", uselist=False)
-
 class Car(Base):
     __tablename__ = 'cars'
     id = Column(Integer, primary_key=True)
@@ -138,6 +119,9 @@ class Car(Base):
     inspection_start_date = Column(Date)
     inspection_end_date = Column(Date)
     
+    # --- ADDED image_url field ---
+    image_url = Column(String(512), nullable=True) # URL from Supabase Storage
+
     # --- Foreign Keys to Lookup Tables ---
     department_id = Column(Integer, ForeignKey('departments.id'))
     car_class_id = Column(Integer, ForeignKey('car_classes.id'))
@@ -149,7 +133,6 @@ class Car(Base):
     contract_type_id = Column(Integer, ForeignKey('contract_types.id'))
     management_id = Column(Integer, ForeignKey('managements.id'))
     activity_id = Column(Integer, ForeignKey('activities.id'))
-    image_id = Column(Integer, ForeignKey('cloudinary_images.id'), unique=True)
 
     # --- Relationships ---
     department = relationship("Department", back_populates="cars")
@@ -162,7 +145,6 @@ class Car(Base):
     contract_type = relationship("ContractType", back_populates="cars")
     management = relationship("Management", back_populates="cars")
     activity = relationship("Activity", back_populates="cars")
-    image = relationship("CloudinaryImage", back_populates="car")
 
 
 class Equipment(Base):
@@ -184,7 +166,6 @@ class Equipment(Base):
     model = relationship("Model", back_populates="equipment")
     location = relationship("EquipmentLocation", back_populates="equipment")
     sector = relationship("Sector", back_populates="equipment")
-    calibration_certificates = relationship("CloudinaryImage", secondary=equipment_image_association)
 
 
 # ===================================================================

@@ -1,6 +1,5 @@
 certifi==2025.8.3
 click==8.2.1
-cloudinary==1.44.1
 colorama==0.4.6
 et_xmlfile==2.0.0
 greenlet==3.2.4
