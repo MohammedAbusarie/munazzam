@@ -1,4 +1,4 @@
-# munazzam/app/core/inventory_management.py
+# app/core/inventory_management.py
 
 from .database import SessionLocal
 from .models import (
@@ -6,11 +6,11 @@ from .models import (
     LocationDescription, NotificationRecipient, ContractType, Management, Activity
 )
 from sqlalchemy.orm import joinedload
-from . import supabase_service # Import the new service
+from . import supabase_service
 
 def get_all_cars_with_details():
     """
-    Fetches all cars. The image URL is now a direct attribute of the car.
+    Fetches all cars and eagerly loads all related data for efficient display.
     """
     session = SessionLocal()
     try:
@@ -52,13 +52,13 @@ def get_lookup_data():
 
 def add_car(car_data):
     """
-    Adds a new car and uploads its image to Supabase Storage.
+    Adds a new car, uploading its image to the 'cars' bucket in Supabase Storage.
     """
     session = SessionLocal()
     try:
         image_path = car_data.pop('image_path', None)
         if image_path:
-            upload_result = supabase_service.upload_image(image_path)
+            upload_result = supabase_service.upload_image(image_path, bucket_name="cars")
             if not upload_result["success"]:
                 raise Exception(f"Image upload failed: {upload_result['error']}")
             car_data['image_url'] = upload_result['url']
@@ -75,8 +75,8 @@ def add_car(car_data):
 
 def update_car(car_id, car_data):
     """
-    Updates a car. If a new image is provided, it replaces the old one
-    in Supabase Storage.
+    Updates a car. If a new image is provided, it deletes the old one from
+    Supabase Storage and uploads the new one.
     """
     session = SessionLocal()
     try:
@@ -84,18 +84,18 @@ def update_car(car_id, car_data):
         
         new_image_path = car_data.pop('image_path', None)
         if new_image_path:
-            # If an old image exists, delete it from storage
+            # If an old image exists, delete it from storage first.
             if car_to_update.image_url:
                 old_path = supabase_service.get_path_from_url(car_to_update.image_url)
                 if old_path:
-                    supabase_service.delete_image(old_path)
+                    supabase_service.delete_image(old_path, bucket_name="cars")
 
-            # Upload the new image
-            upload_result = supabase_service.upload_image(new_image_path)
+            # Upload the new image.
+            upload_result = supabase_service.upload_image(new_image_path, bucket_name="cars")
             if not upload_result["success"]:
                 raise Exception(f"New image upload failed: {upload_result['error']}")
             
-            # Update the URL on the car object directly
+            # Update the URL on the car object directly.
             car_to_update.image_url = upload_result['url']
 
         for key, value in car_data.items():
@@ -111,18 +111,17 @@ def update_car(car_id, car_data):
 
 def delete_car(car_id):
     """
-    Deletes a car from the database and its associated image from
-    Supabase Storage.
+    Deletes a car from the database and its associated image from Supabase Storage.
     """
     session = SessionLocal()
     try:
         car_to_delete = session.query(Car).filter(Car.id == car_id).one()
         
-        # If an image URL exists, delete the file from storage
+        # If an image URL exists, delete the file from storage.
         if car_to_delete.image_url:
             path = supabase_service.get_path_from_url(car_to_delete.image_url)
             if path:
-                supabase_service.delete_image(path)
+                supabase_service.delete_image(path, bucket_name="cars")
             
         session.delete(car_to_delete)
         session.commit()

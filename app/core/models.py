@@ -146,6 +146,17 @@ class Car(Base):
     management = relationship("Management", back_populates="cars")
     activity = relationship("Activity", back_populates="cars")
 
+class CalibrationCertificate(Base):
+    __tablename__ = 'calibration_certificates'
+    id = Column(Integer, primary_key=True)
+    image_url = Column(String(512), nullable=False)
+    
+    # Foreign key to link to the equipment table
+    equipment_id = Column(Integer, ForeignKey('equipment.id'), nullable=False)
+
+    # Relationship back to the Equipment model
+    equipment = relationship("Equipment", back_populates="certificates")
+
 
 class Equipment(Base):
     __tablename__ = 'equipment'
@@ -166,6 +177,13 @@ class Equipment(Base):
     model = relationship("Model", back_populates="equipment")
     location = relationship("EquipmentLocation", back_populates="equipment")
     sector = relationship("Sector", back_populates="equipment")
+
+    # This creates the one-to-many link to the certificates
+    certificates = relationship(
+        "CalibrationCertificate", 
+        back_populates="equipment",
+        cascade="all, delete-orphan"
+    )
 
 
 # ===================================================================
